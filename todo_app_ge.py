@@ -5,17 +5,36 @@ from datetime import date, datetime
 from uuid import uuid4
 
 FILE_TASK = "attivita.json"
+FILE_CONTESTI = "contesti.json"
 
-# Colori per contesto
-COLORI_CONTESTO = {
-    "Evomotor": "#D1E8FF",
-    "Personale": "#FFD1DC",
-    "Famiglia": "#E2F0CB",
-    "Futura": "#E8DAFF",
-    "Investimenti": "#FFFACD"
-}
+# Funzione di caricamento dei colori/contesti personalizzati
+def carica_contesti():
+    if os.path.exists(FILE_CONTESTI):
+        with open(FILE_CONTESTI, "r") as f:
+            return json.load(f)
+    return {
+        "Evomotor": "#D1E8FF",
+        "Personale": "#FFD1DC",
+        "Famiglia": "#E2F0CB",
+        "Futura": "#E8DAFF",
+        "Investimenti": "#FFFACD"
+    }
+
+def salva_contesti(dati):
+    with open(FILE_CONTESTI, "w") as f:
+        json.dump(dati, f, indent=2, ensure_ascii=False)
+
+def genera_colore_unico(existing_colors):
+    from random import randint
+    while True:
+        colore = f"#{randint(0, 255):02X}{randint(0, 255):02X}{randint(0, 255):02X}"
+        if colore not in existing_colors:
+            return colore
+
+COLORI_CONTESTO = carica_contesti()
 
 # Funzioni di gestione dati
+
 def carica_attivita():
     if os.path.exists(FILE_TASK):
         with open(FILE_TASK, "r") as f:
@@ -43,7 +62,7 @@ st.set_page_config(page_title="Gestione Attività - Gianmario")
 st.title("🗂️ Gestione Attività - Gianmario")
 
 # Navigazione tra pagine
-pagina = st.sidebar.selectbox("Naviga tra le sezioni", ["Agenda", "Completate", "Eliminate"])
+pagina = st.sidebar.selectbox("Naviga tra le sezioni", ["Agenda", "Completate", "Eliminate", "Contesti"])
 
 attivita = carica_attivita()
 attivita, notifica_scadenza = aggiorna_scadenze(attivita)
@@ -149,4 +168,40 @@ elif pagina == "Eliminate":
             if st.button("🔁 Ripristina", key="ripr_elim" + a["id"]):
                 a["stato"] = "attiva"
                 salva_attivita(attivita)
+                st.rerun()
+
+# Pagina CONTESTI
+elif pagina == "Contesti":
+    st.subheader("🎨 Personalizza contesti")
+    contesti_keys = list(COLORI_CONTESTO.keys())
+    nuovo_nome = st.text_input("Aggiungi nuovo contesto")
+    nuovo_colore = st.color_picker("Scegli colore", value=genera_colore_unico(COLORI_CONTESTO.values()))
+    if st.button("➕ Aggiungi contesto") and nuovo_nome:
+        if nuovo_nome in COLORI_CONTESTO:
+            st.warning("Contesto già esistente.")
+        elif nuovo_colore in COLORI_CONTESTO.values():
+            st.warning("Colore già utilizzato.")
+        else:
+            COLORI_CONTESTO[nuovo_nome] = nuovo_colore
+            salva_contesti(COLORI_CONTESTO)
+            st.success("Contesto aggiunto con successo.")
+            st.rerun()
+
+    for nome in contesti_keys:
+        col1, col2, col3 = st.columns([3, 1, 1])
+        col1.write(nome)
+        nuovo_valore = col2.color_picker("", COLORI_CONTESTO[nome], key="picker" + nome)
+        if nuovo_valore != COLORI_CONTESTO[nome]:
+            if nuovo_valore in COLORI_CONTESTO.values():
+                st.warning("Colore già utilizzato da un altro contesto.")
+            else:
+                COLORI_CONTESTO[nome] = nuovo_valore
+                salva_contesti(COLORI_CONTESTO)
+        # Protezione da eliminazione se usato
+        if any(a["contesto"] == nome for a in attivita):
+            col3.markdown("🔒")
+        else:
+            if col3.button("❌", key="del_contesto" + nome):
+                del COLORI_CONTESTO[nome]
+                salva_contesti(COLORI_CONTESTO)
                 st.rerun()
