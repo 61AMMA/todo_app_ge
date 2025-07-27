@@ -7,18 +7,25 @@ from uuid import uuid4
 FILE_TASK = "attivita.json"
 FILE_CONTESTI = "contesti.json"
 
+# Funzione di caricamento sicuro JSON
+def carica_json_sicuro(percorso, default):
+    if os.path.exists(percorso):
+        try:
+            with open(percorso, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            return default
+    return default
+
 # Funzione di caricamento dei colori/contesti personalizzati
 def carica_contesti():
-    if os.path.exists(FILE_CONTESTI):
-        with open(FILE_CONTESTI, "r") as f:
-            return json.load(f)
-    return {
+    return carica_json_sicuro(FILE_CONTESTI, {
         "Evomotor": "#D1E8FF",
         "Personale": "#FFD1DC",
         "Famiglia": "#E2F0CB",
         "Futura": "#E8DAFF",
         "Investimenti": "#FFFACD"
-    }
+    })
 
 def salva_contesti(dati):
     with open(FILE_CONTESTI, "w") as f:
@@ -36,10 +43,7 @@ COLORI_CONTESTO = carica_contesti()
 # Funzioni di gestione dati
 
 def carica_attivita():
-    if os.path.exists(FILE_TASK):
-        with open(FILE_TASK, "r") as f:
-            return json.load(f)
-    return []
+    return carica_json_sicuro(FILE_TASK, [])
 
 def salva_attivita(attivita):
     with open(FILE_TASK, "w") as f:
@@ -59,6 +63,17 @@ def aggiorna_scadenze(attivita):
 
 # Interfaccia Streamlit
 st.set_page_config(page_title="Gestione Attività - Gianmario")
+
+# Adattamento dinamico stile per dispositivi
+st.markdown("""
+    <style>
+    @media screen and (max-width: 600px) {
+        h1, .element-container h1 { font-size: 22px !important; }
+        h2, .element-container h2 { font-size: 18px !important; }
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("🗂️ Gestione Attività - Gianmario")
 
 # Navigazione tra pagine
