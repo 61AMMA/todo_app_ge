@@ -69,7 +69,7 @@ st.markdown("""
     <style>
     @media screen and (max-width: 600px) {
         h1, .element-container h1 { font-size: 22px !important; }
-        h2, .element-container h2 { font-size: 18px !important; }
+        h2, .element-container h2 { font-size: 22px !important; }
     }
     </style>
 """, unsafe_allow_html=True)
@@ -106,18 +106,21 @@ if pagina == "Agenda":
         submitted = st.form_submit_button("Aggiungi attività")
 
         if submitted:
-            nuova = {
-                "id": str(uuid4()),
-                "titolo": titolo,
-                "descrizione": descrizione,
-                "contesto": contesto,
-                "scadenza": scadenza.isoformat(),
-                "stato": "attiva"
-            }
-            attivita.append(nuova)
-            salva_attivita(attivita)
-            st.success("Attività aggiunta con successo.")
-            st.rerun()
+            if not titolo or not contesto or not scadenza:
+                st.error("Compila tutti i campi obbligatori (Titolo, Contesto, Scadenza).")
+            else:
+                nuova = {
+                    "id": str(uuid4()),
+                    "titolo": titolo,
+                    "descrizione": descrizione,
+                    "contesto": contesto,
+                    "scadenza": scadenza.isoformat(),
+                    "stato": "attiva"
+                }
+                attivita.append(nuova)
+                salva_attivita(attivita)
+                st.success("Attività aggiunta con successo.")
+                st.rerun()
 
     st.subheader("📌 Attività attive")
     attive = filtra_per_contesto(ordina_attivita([a for a in attivita if a["stato"] == "attiva"]))
