@@ -6,6 +6,15 @@ from uuid import uuid4
 
 FILE_TASK = "attivita.json"
 
+# Colori per contesto
+COLORI_CONTESTO = {
+    "Evomotor": "#D1E8FF",
+    "Personale": "#FFD1DC",
+    "Famiglia": "#E2F0CB",
+    "Futura": "#E8DAFF",
+    "Investimenti": "#FFFACD"
+}
+
 # Funzioni di gestione dati
 def carica_attivita():
     if os.path.exists(FILE_TASK):
@@ -58,7 +67,7 @@ if pagina == "Agenda":
     with st.form("aggiungi_attivita"):
         titolo = st.text_input("Titolo attività")
         descrizione = st.text_area("Descrizione attività")
-        contesto = st.selectbox("Contesto", ["Evomotor", "Personale", "Famiglia", "Futura", "Investimenti"])
+        contesto = st.selectbox("Contesto", list(COLORI_CONTESTO.keys()))
         scadenza = st.date_input("Data scadenza")
         submitted = st.form_submit_button("Aggiungi attività")
 
@@ -79,7 +88,8 @@ if pagina == "Agenda":
     st.subheader("📌 Attività attive")
     attive = filtra_per_contesto(ordina_attivita([a for a in attivita if a["stato"] == "attiva"]))
     for a in attive:
-        with st.container():
+        with st.container(border=True):
+            st.markdown(f"<div style='background-color:{COLORI_CONTESTO.get(a['contesto'], '#F0F0F0')}; padding: 10px; border-radius: 8px;'>", unsafe_allow_html=True)
             st.markdown(f"**{a['titolo']}**")
             st.caption(a["descrizione"])
             st.write(f"_Scadenza: {a['scadenza']}_")
@@ -92,11 +102,13 @@ if pagina == "Agenda":
                 a["stato"] = "eliminata"
                 salva_attivita(attivita)
                 st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
     st.subheader("⏰ Attività scadute")
     scadute = filtra_per_contesto(ordina_attivita([a for a in attivita if a["stato"] == "scaduta"]))
     for a in scadute:
-        with st.container():
+        with st.container(border=True):
+            st.markdown(f"<div style='background-color:{COLORI_CONTESTO.get(a['contesto'], '#F0F0F0')}; padding: 10px; border-radius: 8px;'>", unsafe_allow_html=True)
             st.markdown(f"**{a['titolo']}**")
             st.caption(a["descrizione"])
             st.write(f"_Scadenza: {a['scadenza']}_")
@@ -109,6 +121,7 @@ if pagina == "Agenda":
                 a["stato"] = "eliminata"
                 salva_attivita(attivita)
                 st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
 # Pagina COMPLETATE
 elif pagina == "Completate":
