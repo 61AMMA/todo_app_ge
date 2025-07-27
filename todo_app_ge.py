@@ -1,9 +1,6 @@
-# ATTENZIONE: questo script richiede il modulo `streamlit` installato nel tuo ambiente Python
-# Installa con: pip install streamlit
-
 try:
     import streamlit as st
-except ModuleNotFoundError:
+except ImportError:
     raise ImportError("Modulo 'streamlit' non trovato. Installa Streamlit con: pip install streamlit")
 
 import json
@@ -37,68 +34,116 @@ def salva_attivita(attivita):
 def ordina_attivita(attivita):
     return sorted(attivita, key=lambda x: x["scadenza"])
 
-# ---------- APP ----------
-st.set_page_config(page_title="ToDo App GE", layout="centered")
-st.title("📋 Gestione Attività")
+# ---------- UI ----------
+st.set_page_config(page_title="ToDo App GE", layout="wide")
+st.title("🗓️ Gestione Attività - Gianmario")
 
+pagina = st.sidebar.selectbox("Seleziona pagina", ["Agenda", "Completate", "Eliminate"])
 attivita = carica_attivita()
-
-# ---------- FORM ----------
-st.subheader("➕ Aggiungi nuova attività")
-with st.form("aggiungi_attivita"):
-    titolo = st.text_input("Titolo attività")
-    descrizione = st.text_area("Descrizione attività")
-    contesto = st.selectbox("Contesto (opzionale)", ["", "Personale", "Famiglia", "Evomotor", "Futura", "Investimenti"])
-    scadenza = st.date_input("Data di scadenza", value=date.today())
-    aggiungi = st.form_submit_button("Aggiungi attività")
-
-    if aggiungi:
-        if titolo.strip() == "" or descrizione.strip() == "" or not scadenza:
-            st.error("❌ Tutti i campi obbligatori devono essere compilati (Titolo, Descrizione, Data)")
-        else:
-            nuova = {
-                "id": str(uuid4()),
-                "titolo": titolo,
-                "descrizione": descrizione,
-                "contesto": contesto,
-                "scadenza": scadenza.isoformat()
-            }
-            attivita.append(nuova)
-            attivita = ordina_attivita(attivita)
-            salva_attivita(attivita)
-            st.success("✅ Attività aggiunta correttamente!")
-            st.rerun()
-
-# ---------- VISUALIZZAZIONE ----------
-
 oggi = date.today()
-attive = [a for a in attivita if datetime.fromisoformat(a["scadenza"]).date() > oggi]
-scadute = [a for a in attivita if datetime.fromisoformat(a["scadenza"]).date() <= oggi]
 
-st.subheader("📌 Attività attive")
-if not attive:
-    st.info("Nessuna attività attiva.")
-for a in attive:
-    colore = COLORI_CONTESTO.get(a["contesto"], "#f0f0f0")
-    with st.container():
-        st.markdown(f"""
-        <div style='background-color:{colore};padding:10px;border-radius:8px;margin-bottom:10px'>
-            <b>{a['titolo']}</b><br>
-            {a['descrizione']}<br>
-            <i>Scadenza: {a['scadenza']}</i>
-        </div>
-        """, unsafe_allow_html=True)
+# Aggiorna stato scadute
+def aggiorna_scadenze():
+    aggiornato = False
+    for a in attivita:
+        if a["stato"] == "attiva" and datetime.fromisoformat(a["scadenza"]).date() < oggi:
+            a["stato"] = "scaduta"
+            aggiornato = True
+    if aggiornato:
+        st.warning("⚠️ Alcune attività sono appena passate a scadute.")
 
-st.subheader("⏰ Attività scadute")
-if not scadute:
-    st.success("Nessuna attività scaduta!")
-for a in scadute:
-    colore = COLORI_CONTESTO.get(a["contesto"], "#f0f0f0")
-    with st.container():
-        st.markdown(f"""
-        <div style='background-color:{colore};padding:10px;border-radius:8px;margin-bottom:10px'>
-            <b>{a['titolo']}</b><br>
-            {a['descrizione']}<br>
-            <i>Scadenza: {a['scadenza']}</i>
-        </div>
-        """, unsafe_allow_html=True)
+aggiorna_scadenze()
+
+if pagina == "Agenda":
+    with st.form("nuova_attivita"):
+        st.subheader("➕ Aggiungi nuova attività")
+        titolo = st.text_input("Titolo attività")
+        descrizione = st.text_area("Descrizione attività")
+        contesto = st.selectbox("Contesto", ["", "Personale", "Famiglia", "Evomotor", "Futura", "Investimenti"])
+        scadenza = st.date_input("Data scadenza", min_value=oggi)
+        aggiungi = st.form_submit_button("Aggiungi attività")
+
+        if aggiungi:
+            if titolo and descrizione and scadenza:
+                nuova = {
+                    "id": str(uuid4()),
+                    "titolo": titolo,
+                    "descrizione": descrizione,
+                    "contesto": contesto,
+                    "scadenza": scadenza.isoformat(),
+                    "stato": "attiva"
+                }
+                attivita.append(nuova)
+                salva_attivita(attivita)
+                st.success("Attività aggiunta con successo.")
+                st.experimental_rerun()
+            else:
+                st.error("Compila tutti i campi obbligatori.")
+
+    contesto_filtrato = st.selectbox("Filtra per contesto", ["Tutti"] + list(COLORI_CONTESTO.keys()))
+
+    def mostra_task(lista, titolo):
+        st.subheader(titolo)
+        for a in lista:
+            if contesto_filtrato != "Tutti" and a["contesto"] != contesto_filtrato:
+                continue
+            bg = COLORI_CONTESTO.get(a["contesto"], "#ffffff")
+            with st.container():
+                st.markdown(f"""
+                <div style='background-color:{bg}; padding:10px; border-radius:10px;'>
+                    <strong>{a['titolo']}</strong><br>
+                    <em>{a['descrizione']}</em><br>
+                    <small>Scadenza: {a['scadenza']} - Contesto: {a['contesto']}</small><br>
+                </div>
+                """, unsafe_allow_html=True)
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("✅ Fatto", key="done" + a["id"]):
+                        a["stato"] = "completata"
+                        salva_attivita(attivita)
+                        st.experimental_rerun()
+                with col2:
+                    if st.button("🗑️ Elimina", key="del" + a["id"]):
+                        a["stato"] = "eliminata"
+                        salva_attivita(attivita)
+                        st.experimental_rerun()
+
+    attive = [a for a in ordina_attivita(attivita) if a["stato"] == "attiva"]
+    scadute = [a for a in ordina_attivita(attivita) if a["stato"] == "scaduta"]
+
+    mostra_task(attive, "🟢 Attività Attive")
+    mostra_task(scadute, "🔴 Attività Scadute")
+
+elif pagina == "Completate":
+    st.subheader("✅ Attività Completate")
+    completate = [a for a in ordina_attivita(attivita) if a["stato"] == "completata"]
+    for a in completate:
+        bg = COLORI_CONTESTO.get(a["contesto"], "#ffffff")
+        with st.container():
+            st.markdown(f"""
+            <div style='background-color:{bg}; padding:10px; border-radius:10px;'>
+                <strong>{a['titolo']}</strong> - <em>{a['descrizione']}</em><br>
+                <small>Scadenza: {a['scadenza']} - Contesto: {a['contesto']}</small>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("🔁 Ripristina", key="res-com" + a["id"]):
+                a["stato"] = "attiva"
+                salva_attivita(attivita)
+                st.experimental_rerun()
+
+elif pagina == "Eliminate":
+    st.subheader("🗑️ Attività Eliminate")
+    eliminate = [a for a in ordina_attivita(attivita) if a["stato"] == "eliminata"]
+    for a in eliminate:
+        bg = COLORI_CONTESTO.get(a["contesto"], "#ffffff")
+        with st.container():
+            st.markdown(f"""
+            <div style='background-color:{bg}; padding:10px; border-radius:10px;'>
+                <strong>{a['titolo']}</strong> - <em>{a['descrizione']}</em><br>
+                <small>Scadenza: {a['scadenza']} - Contesto: {a['contesto']}</small>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("🔁 Ripristina", key="res-eli" + a["id"]):
+                a["stato"] = "attiva"
+                salva_attivita(attivita)
+                st.experimental_rerun()
