@@ -74,7 +74,7 @@ if pagina == "Agenda":
             attivita.append(nuova)
             salva_attivita(attivita)
             st.success("Attività aggiunta con successo.")
-            st.experimental_rerun()
+            st.rerun()
 
     st.subheader("📌 Attività attive")
     attive = filtra_per_contesto(ordina_attivita([a for a in attivita if a["stato"] == "attiva"]))
@@ -87,11 +87,11 @@ if pagina == "Agenda":
             if col1.button("✅ Fatto", key="done" + a["id"]):
                 a["stato"] = "completata"
                 salva_attivita(attivita)
-                st.experimental_rerun()
+                st.rerun()
             if col2.button("🗑️ Elimina", key="del" + a["id"]):
                 a["stato"] = "eliminata"
                 salva_attivita(attivita)
-                st.experimental_rerun()
+                st.rerun()
 
     st.subheader("⏰ Attività scadute")
     scadute = filtra_per_contesto(ordina_attivita([a for a in attivita if a["stato"] == "scaduta"]))
@@ -104,11 +104,11 @@ if pagina == "Agenda":
             if col1.button("✅ Fatto", key="done_scaduta" + a["id"]):
                 a["stato"] = "completata"
                 salva_attivita(attivita)
-                st.experimental_rerun()
+                st.rerun()
             if col2.button("🗑️ Elimina", key="del_scaduta" + a["id"]):
                 a["stato"] = "eliminata"
                 salva_attivita(attivita)
-                st.experimental_rerun()
+                st.rerun()
 
 # Pagina COMPLETATE
 elif pagina == "Completate":
@@ -122,7 +122,7 @@ elif pagina == "Completate":
             if st.button("🔁 Ripristina", key="ripr_comp" + a["id"]):
                 a["stato"] = "attiva"
                 salva_attivita(attivita)
-                st.experimental_rerun()
+                st.rerun()
 
 # Pagina ELIMINATE
 elif pagina == "Eliminate":
@@ -136,4 +136,4 @@ elif pagina == "Eliminate":
             if st.button("🔁 Ripristina", key="ripr_elim" + a["id"]):
                 a["stato"] = "attiva"
                 salva_attivita(attivita)
-                st.experimental_rerun()
+                st.rerun()
